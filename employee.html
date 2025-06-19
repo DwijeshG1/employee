@@ -1,0 +1,123 @@
+<!-- employee-form.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee Form</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    button { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Employee Data CRUD Form</h2>
+  <label>Title: <input type="text" id="empTitle" /></label>
+  <label>Department: <input type="text" id="empDept" /></label>
+  <label>Age: <input type="number" id="empAge" /></label>
+
+  <button onclick="createItem()">Create</button>
+  <button onclick="readItems()">Read</button>
+  <br /><br />
+  
+  <label>ID to Update/Delete: <input type="number" id="empId" /></label>
+  <button onclick="updateItem()">Update</button>
+  <button onclick="deleteItem()">Delete</button>
+
+  <div id="results" style="margin-top: 20px;"></div>
+
+  <script>
+    const listName = "EmployeeData";
+
+    function getItemTypeForListName(name) {
+        return "SP.Data." + name.replace(/\s/g, "_x0020_") + "ListItem";
+    }
+
+    function createItem() {
+        var itemType = getItemTypeForListName(listName);
+        var item = {
+            "__metadata": { "type": itemType },
+            "Title": $("#empTitle").val(),
+            "Department": $("#empDept").val(),
+            "Age": parseInt($("#empAge").val())
+        };
+
+        $.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items",
+            type: "POST",
+            data: JSON.stringify(item),
+            headers: {
+                "Accept": "application/json;odata=verbose",
+                "Content-Type": "application/json;odata=verbose",
+                "X-RequestDigest": $("#__REQUESTDIGEST").val()
+            },
+            success: function () { alert("Item Created!"); },
+            error: function (err) { console.error(err); }
+        });
+    }
+
+    function readItems() {
+        $.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items?$orderby=Id desc&$top=10",
+            type: "GET",
+            headers: { "Accept": "application/json;odata=verbose" },
+            success: function (data) {
+                let html = "<h3>Latest Items</h3><ul>";
+                data.d.results.forEach(item => {
+                    html += `<li>ID: ${item.Id}, Title: ${item.Title}, Dept: ${item.Department}, Age: ${item.Age}</li>`;
+                });
+                html += "</ul>";
+                $("#results").html(html);
+            },
+            error: function (err) { console.error(err); }
+        });
+    }
+
+    function updateItem() {
+        const id = $("#empId").val();
+        if (!id) return alert("Enter ID to update!");
+
+        var itemType = getItemTypeForListName(listName);
+        var updatedItem = {
+            "__metadata": { "type": itemType },
+            "Title": $("#empTitle").val(),
+            "Department": $("#empDept").val(),
+            "Age": parseInt($("#empAge").val())
+        };
+
+        $.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items(" + id + ")",
+            type: "POST",
+            data: JSON.stringify(updatedItem),
+            headers: {
+                "Accept": "application/json;odata=verbose",
+                "Content-Type": "application/json;odata=verbose",
+                "X-RequestDigest": $("#__REQUESTDIGEST").val(),
+                "X-HTTP-Method": "MERGE",
+                "IF-MATCH": "*"
+            },
+            success: function () { alert("Item Updated!"); },
+            error: function (err) { console.error(err); }
+        });
+    }
+
+    function deleteItem() {
+        const id = $("#empId").val();
+        if (!id) return alert("Enter ID to delete!");
+
+        $.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items(" + id + ")",
+            type: "POST",
+            headers: {
+                "Accept": "application/json;odata=verbose",
+                "X-RequestDigest": $("#__REQUESTDIGEST").val(),
+                "X-HTTP-Method": "DELETE",
+                "IF-MATCH": "*"
+            },
+            success: function () { alert("Item Deleted!"); },
+            error: function (err) { console.error(err); }
+        });
+    }
+  </script>
+</body>
+</html>
